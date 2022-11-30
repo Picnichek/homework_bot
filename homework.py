@@ -8,6 +8,8 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+from exceptions import HTTPRequestError, ParseStatusError
+
 load_dotenv()
 
 
@@ -16,6 +18,7 @@ TELEGRAM_TOKEN = os.getenv('TOKEN_TELEGRAM')
 TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
 
 RETRY_PERIOD = 600
+# RETRY_PERIOD = 2
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -27,23 +30,22 @@ HOMEWORK_VERDICTS = {
 
 
 def check_tokens():
-    """проверяет наличие всех токенов."""
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID is not None:
-        return True
-    return False
+    """Проверяет наличие всех токенов."""
+    return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
 
 
 def send_message(bot, message):
-    """отправляет сообщение в Telegram."""
+    """Отправляет сообщение в Telegram."""
     try:
-        logging.debug(f'Сообщение отправлено ботом {message}')
         bot.send_message(TELEGRAM_CHAT_ID, message)
-    except Exception as error:
+    except telegram.error.TelegramError as error:
         logging.error(error)
+    else:
+        logging.debug(f'Сообщение не отправлено ботом {message}')
 
 
 def get_api_answer(timestamp):
-    """создает и отправляет запрос к эндпоинту."""
+    """Создает и отправляет запрос к эндпоинту."""
     try:
         params = {'from_date': timestamp}
         logging.info(f'отправка запроса на {ENDPOINT} с параметрами {params}')
@@ -51,7 +53,7 @@ def get_api_answer(timestamp):
     except requests.RequestException:
         logging.error('ошибка "RequestException"')
     if response.status_code != HTTPStatus.OK:
-        raise Exception
+        raise HTTPRequestError(response)
     return response.json()
 
 
@@ -59,7 +61,6 @@ def check_response(response):
     """Проверка полученного ответа от эндпоинта."""
     if not response:
         message = 'пустой запрос'
-        logging.error(message)
         raise KeyError(message)
 
     if not isinstance(response, dict):
@@ -75,7 +76,6 @@ def check_response(response):
     if not isinstance(response.get('homeworks'), list):
         message = 'формат ответа не является list'
         logging.error(message)
-        # raise CheckResponseError(message)
         raise TypeError(message)
     return response['homeworks']
 
@@ -89,8 +89,8 @@ def parse_status(homework):
     homework_status = homework.get('status')
     if 'status' not in homework:
         message = 'Нет ключа "status"'
-        logging.error(message),
-        # raise ParseStatusError(message)
+        logging.error(message)
+        raise ParseStatusError(message)
 
     verdict = HOMEWORK_VERDICTS.get(homework_status)
 
@@ -108,12 +108,15 @@ def main():
         'error': None,
     }
 
-    if check_tokens() is False:
+    if not check_tokens():
         logging.critical(
             'Отсутствует обязательная переменная окружения.'
             'Программа принудительно остановлена.'
         )
-        exit()
+        sys.exit(
+            'Отсутствует обязательная переменная окружения.'
+            'Программа принудительно остановлена.'
+        )
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
@@ -123,7 +126,6 @@ def main():
             homeworks = check_response(response)
             if len(homeworks) == 0:
                 logging.debug('Ответ пуст, нет домашних работ.')
-                break
             for homework in homeworks:
                 message = parse_status(homework)
                 if last_send.get(homework['homework_name']) != message:
