@@ -13,7 +13,5 @@ class ParseStatusError(Exception):
     """Ошибка, возвращающая парсинг ответа от API."""
 
     def __init__(self, text):
-        message = (
-            f'Парсинг ответа API: {text}'
-        )
+        message = f'Парсинг ответа API: {text}'
         super().__init__(message)
