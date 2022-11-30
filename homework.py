@@ -12,13 +12,11 @@ from exceptions import HTTPRequestError, ParseStatusError
 
 load_dotenv()
 
-
 PRACTICUM_TOKEN = os.getenv('TOKEN_YANDEX')
 TELEGRAM_TOKEN = os.getenv('TOKEN_TELEGRAM')
 TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
 
 RETRY_PERIOD = 600
-# RETRY_PERIOD = 2
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -131,7 +129,6 @@ def main():
                 if last_send.get(homework['homework_name']) != message:
                     send_message(bot, message)
                     last_send[homework['homework_name']] = message
-            timestamp = response.get('current_date')
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
