@@ -7,14 +7,11 @@
 - python-telegram-bot 13.7
 
 ### Как запустить проект:
-Клонировать репозиторий и перейти в него в командной строке
-
-Cоздать и активировать виртуальное окружение
-
-Установить зависимости из файла requirements.txt:
-
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+- Клонировать репозиторий и перейти в него в командной строке
+- Cоздать и активировать виртуальное окружение
+- Установить зависимости из файла requirements.txt:
+  python -m pip install --upgrade pip
+  pip install -r requirements.txt
 
 Записать в переменные окружения (файл .env) необходимые ключи:
 
